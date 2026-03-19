@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>LyriFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0f;
+  --bg-surface: #14141c;
+  --bg-elevated: #1e1e2a;
+  --text: #e8e6f0;
+  --text-dim: #8886a0;
+  --accent: #ff6b3d;
+  --accent-dim: rgba(255, 107, 61, 0.2);
+  --border: #2a2a3a;
+  --danger: #ff4466;
+  --font-ui: 'Outfit', 'Noto Sans JP', sans-serif;
+  --font-lyrics: 'Noto Sans JP', sans-serif;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button {
+  font-family: var(--font-ui);
+  cursor: pointer;
+  border: none;
+  outline: none;
+  background: none;
+  color: var(--text);
+}
+
+/* ==================== EDIT MODE ==================== */
+#editMode {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+.edit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.edit-header h1 {
+  font-family: var(--font-ui);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { opacity: 0.85; }
+
+.btn-secondary {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--border); }
+
+.btn-danger {
+  color: var(--danger);
+}
+.btn-danger:hover { background: rgba(255, 68, 102, 0.1); }
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 18px;
+}
+.btn-icon:hover { background: var(--bg-elevated); }
+
+.edit-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Song list sidebar */
+.song-list {
+  width: 260px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.song-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.song-list-header span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.song-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.song-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.1s;
+  margin-bottom: 2px;
+}
+
+.song-item:hover { background: var(--bg-elevated); }
+.song-item.active { background: var(--accent-dim); color: var(--accent); }
+
+.song-item .song-title-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-item .drag-handle {
+  cursor: grab;
+  color: var(--text-dim);
+  font-size: 16px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.song-item .drag-handle:active { cursor: grabbing; }
+
+.song-item.dragging {
+  opacity: 0.4;
+}
+.song-item.drag-over {
+  border-top: 2px solid var(--accent);
+}
+
+/* Song editor */
+.song-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+  overflow: hidden;
+}
+
+.song-editor-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 15px;
+}
+
+.song-title-input {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 18px;
+  font-weight: 600;
+  width: 100%;
+  margin-bottom: 12px;
+  outline: none;
+}
+.song-title-input:focus { border-color: var(--accent); }
+
+.song-title-input::placeholder { color: var(--text-dim); }
+
+.lyrics-textarea {
+  flex: 1;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  color: var(--text);
+  font-family: var(--font-lyrics);
+  font-size: 15px;
+  line-height: 1.7;
+  resize: none;
+  outline: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.lyrics-textarea:focus { border-color: var(--accent); }
+.lyrics-textarea::placeholder { color: var(--text-dim); }
+
+.editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.slide-preview-count {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.font-size-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.font-size-control input[type="range"] {
+  width: 100px;
+  accent-color: var(--accent);
+}
+
+.font-size-control .font-size-value {
+  min-width: 32px;
+  text-align: center;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ==================== SLIDE PREVIEW (Editor) ==================== */
+.slide-preview-area {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 0;
+  margin-top: 10px;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.slide-preview-card {
+  min-width: 180px;
+  max-width: 240px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--font-lyrics);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.slide-preview-card .card-number {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+/* ==================== PERFORM MODE ==================== */
+#performMode {
+  display: none;
+  height: 100%;
+  flex-direction: column;
+  position: relative;
+}
+
+#performMode.active {
+  display: flex;
+}
+
+#editMode.hidden {
+  display: none;
+}
+
+.perform-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.perform-song-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -0.3px;
+}
+
+.perform-progress-text {
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.perform-exit {
+  font-size: 13px;
+  color: var(--text-dim);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+.perform-exit:hover { background: var(--bg-elevated); }
+
+.progress-bar-container {
+  height: 3px;
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.slide-area {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px 48px;
+  overflow: hidden;
+}
+
+.slide-content {
+  font-family: var(--font-lyrics);
+  color: #ffffff;
+  font-weight: 700;
+  line-height: 1.8;
+  text-align: left;
+  white-space: pre;
+  transition: opacity 0.15s ease;
+  width: 100%;
+  text-shadow: 0 0 20px rgba(255,255,255,0.15), 0 2px 4px rgba(0,0,0,0.5);
+  letter-spacing: 0.04em;
+}
+
+.slide-content.section-label {
+  color: var(--accent);
+  font-weight: 700;
+  text-align: center;
+  text-shadow: 0 0 24px rgba(255,107,61,0.3), 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.next-preview {
+  padding: 8px 48px 12px;
+  font-family: var(--font-lyrics);
+  font-weight: 700;
+  color: var(--text-dim);
+  opacity: 0.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  text-shadow: 0 0 12px rgba(255,255,255,0.08);
+}
+
+/* Song transition overlay */
+.song-transition {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.song-transition.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.song-transition .next-song-label {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.song-transition .next-song-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .edit-body { flex-direction: column; }
+  .song-list { width: 100%; height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
+  .song-editor { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== EDIT MODE ==================== -->
+<div id="editMode">
+  <div class="edit-header">
+    <h1>LyriFlow</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="exportJSON()" title="Export">Export</button>
+      <button class="btn btn-secondary" onclick="importJSON()" title="Import">Import</button>
+      <button class="btn btn-primary" onclick="startPerformance()">&#9654; Play</button>
+    </div>
+  </div>
+  <div class="edit-body">
+    <div class="song-list">
+      <div class="song-list-header">
+        <span>Setlist</span>
+        <button class="btn-icon" onclick="addSong()" title="Add song">+</button>
+      </div>
+      <div class="song-items" id="songItems"></div>
+    </div>
+    <div class="song-editor" id="songEditor">
+      <div class="song-editor-empty" id="editorEmpty">
+        曲を追加または選択してください
+      </div>
+      <div id="editorContent" style="display:none; flex:1; display:none; flex-direction:column;">
+        <input type="text" class="song-title-input" id="songTitleInput" placeholder="曲名" oninput="onTitleChange()">
+        <textarea class="lyrics-textarea" id="lyricsTextarea" placeholder="歌詞を貼り付け（空行でスライド分割）" oninput="onLyricsChange()"></textarea>
+        <div class="slide-preview-area" id="slidePreviewArea"></div>
+        <div class="editor-footer">
+          <span class="slide-preview-count" id="slideCount"></span>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div class="font-size-control">
+              <span>Size</span>
+              <input type="range" id="fontSizeSlider" min="18" max="64" value="32" oninput="onFontSizeChange()">
+              <span class="font-size-value" id="fontSizeValue">32</span>
+            </div>
+            <button class="btn btn-danger" onclick="deleteSong()">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PERFORM MODE ==================== -->
+<div id="performMode">
+  <div class="perform-header">
+    <span class="perform-song-title" id="performSongTitle"></span>
+    <span class="perform-progress-text" id="performProgress"></span>
+    <button class="perform-exit" onclick="exitPerformance()">ESC</button>
+  </div>
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+  <div class="slide-area">
+    <div class="slide-content" id="slideContent"></div>
+  </div>
+  <div class="next-preview" id="nextPreview"></div>
+  <div class="song-transition" id="songTransition">
+    <div class="next-song-label">Next</div>
+    <div class="next-song-title" id="transitionTitle"></div>
+  </div>
+</div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleFileImport(event)">
+
+<script>
+// ==================== STATE ====================
+let state = {
+  setlist: [],
+  fontSize: 32,
+  selectedSongId: null,
+};
+
+let performState = {
+  allSlides: [],     // { songIndex, songTitle, text, isLabel }
+  currentIndex: 0,
+  wakeLock: null,
+};
+
+// ==================== PERSISTENCE ====================
+const STORAGE_KEY = 'lyriflow_data';
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    setlist: state.setlist,
+    fontSize: state.fontSize,
+  }));
+}
+
+function loadState() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (data) {
+      state.setlist = data.setlist || [];
+      state.fontSize = data.fontSize || 32;
+    }
+  } catch (e) { /* ignore */ }
+}
+
+// ==================== SONG MANAGEMENT ====================
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function addSong() {
+  const song = { id: generateId(), title: '', lyrics: '' };
+  state.setlist.push(song);
+  state.selectedSongId = song.id;
+  saveState();
+  renderSongList();
+  renderEditor();
+  document.getElementById('songTitleInput').focus();
+}
+
+function selectSong(id) {
+  state.selectedSongId = id;
+  renderSongList();
+  renderEditor();
+}
+
+function deleteSong() {
+  if (!state.selectedSongId) return;
+  const idx = state.setlist.findIndex(s => s.id === state.selectedSongId);
+  if (idx === -1) return;
+  state.setlist.splice(idx, 1);
+  state.selectedSongId = state.setlist.length > 0
+    ? state.setlist[Math.min(idx, state.setlist.length - 1)].id
+    : null;
+  saveState();
+  renderSongList();
+  renderEditor();
+}
+
+function getSelectedSong() {
+  return state.setlist.find(s => s.id === state.selectedSongId) || null;
+}
+
+function onTitleChange() {
+  const song = getSelectedSong();
+  if (!song) return;
+  song.title = document.getElementById('songTitleInput').value;
+  saveState();
+  renderSongList();
+}
+
+function onLyricsChange() {
+  const song = getSelectedSong();
+  if (!song) return;
+  song.lyrics = document.getElementById('lyricsTextarea').value;
+  saveState();
+  updateSlideCount();
+  updateSlidePreview();
+}
+
+function onFontSizeChange() {
+  state.fontSize = parseInt(document.getElementById('fontSizeSlider').value);
+  document.getElementById('fontSizeValue').textContent = state.fontSize;
+  saveState();
+}
+
+// ==================== LYRICS → SLIDES ====================
+function lyricsToSlides(lyrics) {
+  if (!lyrics.trim()) return [];
+  return lyrics.split(/\n\s*\n/)
+    .map(block => block.trim())
+    .filter(block => block.length > 0);
+}
+
+function updateSlideCount() {
+  const song = getSelectedSong();
+  const count = song ? lyricsToSlides(song.lyrics).length : 0;
+  document.getElementById('slideCount').textContent = count > 0 ? `${count} slides` : '';
+}
+
+function updateSlidePreview() {
+  const container = document.getElementById('slidePreviewArea');
+  const song = getSelectedSong();
+  if (!song || !container) { if (container) container.innerHTML = ''; return; }
+  const blocks = lyricsToSlides(song.lyrics);
+  container.innerHTML = '';
+  blocks.forEach((block, i) => {
+    const card = document.createElement('div');
+    card.className = 'slide-preview-card';
+    const num = document.createElement('span');
+    num.className = 'card-number';
+    num.textContent = i + 1;
+    card.appendChild(num);
+    const text = document.createTextNode(block);
+    card.appendChild(text);
+    container.appendChild(card);
+  });
+}
+
+// ==================== RENDER ====================
+function renderSongList() {
+  const container = document.getElementById('songItems');
+  container.innerHTML = '';
+  state.setlist.forEach((song, index) => {
+    const el = document.createElement('div');
+    el.className = 'song-item' + (song.id === state.selectedSongId ? ' active' : '');
+    el.draggable = true;
+    el.dataset.index = index;
+    el.innerHTML = `
+      <span class="drag-handle">&#8942;&#8942;</span>
+      <span class="song-title-text">${song.title || '(untitled)'}</span>
+    `;
+    el.addEventListener('click', () => selectSong(song.id));
+
+    // Drag & drop
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', index);
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      container.querySelectorAll('.song-item').forEach(item => item.classList.remove('drag-over'));
+    });
+    el.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+      const toIndex = index;
+      if (fromIndex === toIndex) return;
+      const [moved] = state.setlist.splice(fromIndex, 1);
+      state.setlist.splice(toIndex, 0, moved);
+      saveState();
+      renderSongList();
+    });
+
+    container.appendChild(el);
+  });
+}
+
+function renderEditor() {
+  const song = getSelectedSong();
+  const empty = document.getElementById('editorEmpty');
+  const content = document.getElementById('editorContent');
+  if (!song) {
+    empty.style.display = 'flex';
+    content.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  content.style.display = 'flex';
+  document.getElementById('songTitleInput').value = song.title;
+  document.getElementById('lyricsTextarea').value = song.lyrics;
+  document.getElementById('fontSizeSlider').value = state.fontSize;
+  document.getElementById('fontSizeValue').textContent = state.fontSize;
+  updateSlideCount();
+  updateSlidePreview();
+}
+
+// ==================== EXPORT / IMPORT ====================
+function exportJSON() {
+  const data = JSON.stringify({ setlist: state.setlist, fontSize: state.fontSize }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'lyriflow-setlist.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON() {
+  document.getElementById('fileInput').click();
+}
+
+function handleFileImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.setlist) {
+        state.setlist = data.setlist;
+        state.fontSize = data.fontSize || 32;
+        state.selectedSongId = state.setlist.length > 0 ? state.setlist[0].id : null;
+        saveState();
+        renderSongList();
+        renderEditor();
+      }
+    } catch (err) {
+      alert('Invalid JSON file');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ==================== PERFORM MODE ====================
+function buildAllSlides() {
+  const slides = [];
+  state.setlist.forEach((song, songIndex) => {
+    const blocks = lyricsToSlides(song.lyrics);
+    if (blocks.length === 0) {
+      slides.push({ songIndex, songTitle: song.title || '(untitled)', text: '', isLabel: false });
+      return;
+    }
+    blocks.forEach(block => {
+      const isLabel = /^[【\[［「『\(（].*[】\]］」』\)）]$/.test(block.trim());
+      slides.push({ songIndex, songTitle: song.title || '(untitled)', text: block, isLabel });
+    });
+  });
+  return slides;
+}
+
+function startPerformance() {
+  if (state.setlist.length === 0) {
+    alert('セットリストに曲を追加してください');
+    return;
+  }
+  performState.allSlides = buildAllSlides();
+  if (performState.allSlides.length === 0) return;
+  performState.currentIndex = 0;
+
+  document.getElementById('editMode').classList.add('hidden');
+  document.getElementById('performMode').classList.add('active');
+  renderSlide();
+  requestWakeLock();
+}
+
+function exitPerformance() {
+  document.getElementById('editMode').classList.remove('hidden');
+  document.getElementById('performMode').classList.remove('active');
+  releaseWakeLock();
+}
+
+function calcFitFontSize(text, containerWidth, containerHeight, maxSize) {
+  const lines = text.split('\n');
+  const lineCount = lines.length;
+  // Approximate: each char is ~1em wide for CJK, ~0.6em for latin
+  const longestLine = Math.max(...lines.map(l => {
+    let w = 0;
+    for (const ch of l) { w += ch.charCodeAt(0) > 0x7f ? 1 : 0.6; }
+    return w;
+  }));
+
+  if (lineCount === 0 || longestLine === 0) return maxSize;
+
+  // Fit by height: containerHeight / (lineCount * lineHeight)
+  const lineHeight = 1.8;
+  const fitByHeight = Math.floor(containerHeight / (lineCount * lineHeight));
+
+  // Fit by width: containerWidth / longestLineChars
+  const fitByWidth = Math.floor(containerWidth / (longestLine * 1.04)); // 1.04 for letter-spacing
+
+  const fitted = Math.min(fitByHeight, fitByWidth, maxSize);
+  return Math.max(fitted, 18); // min 18px
+}
+
+function renderSlide() {
+  const slides = performState.allSlides;
+  const idx = performState.currentIndex;
+  if (idx < 0 || idx >= slides.length) return;
+
+  const slide = slides[idx];
+  const slideContent = document.getElementById('slideContent');
+  const slideArea = document.querySelector('.slide-area');
+
+  // Auto-fit font size
+  const areaRect = slideArea.getBoundingClientRect();
+  const availableWidth = areaRect.width - 96; // padding
+  const availableHeight = areaRect.height - 40;
+  const fittedSize = calcFitFontSize(slide.text, availableWidth, availableHeight, state.fontSize);
+  slideContent.style.fontSize = fittedSize + 'px';
+
+  slideContent.textContent = slide.text;
+  slideContent.className = 'slide-content' + (slide.isLabel ? ' section-label' : '');
+
+  document.getElementById('performSongTitle').textContent = slide.songTitle;
+
+  // Count slides for current song
+  const songSlides = slides.filter(s => s.songIndex === slide.songIndex);
+  const slideInSong = slides.slice(0, idx + 1).filter(s => s.songIndex === slide.songIndex).length;
+  document.getElementById('performProgress').textContent = `${slideInSong}/${songSlides.length}`;
+
+  // Global progress bar
+  const progress = slides.length > 1 ? (idx / (slides.length - 1)) * 100 : 100;
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  // Next slide preview
+  const nextPreview = document.getElementById('nextPreview');
+  if (idx + 1 < slides.length) {
+    const nextSlide = slides[idx + 1];
+    if (nextSlide.songIndex !== slide.songIndex) {
+      nextPreview.textContent = '\u25b6 ' + nextSlide.songTitle;
+    } else {
+      const firstLine = nextSlide.text.split('\n')[0] || '';
+      nextPreview.textContent = firstLine;
+    }
+    // Match font size: use the smaller of current fitted size and next slide's fitted size
+    const nextFitted = calcFitFontSize(nextSlide.text, availableWidth, availableHeight, state.fontSize);
+    nextPreview.style.fontSize = Math.min(fittedSize, nextFitted) + 'px';
+  } else {
+    nextPreview.textContent = '';
+  }
+}
+
+function showSongTransition(title, callback) {
+  const overlay = document.getElementById('songTransition');
+  document.getElementById('transitionTitle').textContent = title;
+  overlay.classList.add('visible');
+  setTimeout(() => {
+    overlay.classList.remove('visible');
+    callback();
+  }, 800);
+}
+
+function navigateSlide(direction) {
+  const slides = performState.allSlides;
+  const oldIndex = performState.currentIndex;
+  const newIndex = oldIndex + direction;
+
+  if (newIndex < 0 || newIndex >= slides.length) return;
+
+  const oldSong = slides[oldIndex].songIndex;
+  const newSong = slides[newIndex].songIndex;
+
+  performState.currentIndex = newIndex;
+
+  if (oldSong !== newSong) {
+    showSongTransition(slides[newIndex].songTitle, () => renderSlide());
+  } else {
+    renderSlide();
+  }
+}
+
+// ==================== KEY HANDLING ====================
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('performMode').classList.contains('active')) return;
+
+  // Don't capture if typing in an input
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  switch (e.key) {
+    case 'PageDown':
+    case 'ArrowRight':
+    case 'ArrowDown':
+    case ' ':
+      e.preventDefault();
+      navigateSlide(1);
+      break;
+    case 'PageUp':
+    case 'ArrowLeft':
+    case 'ArrowUp':
+      e.preventDefault();
+      navigateSlide(-1);
+      break;
+    case 'Escape':
+      e.preventDefault();
+      exitPerformance();
+      break;
+  }
+});
+
+// ==================== WAKE LOCK ====================
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      performState.wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch (e) { /* ignore */ }
+}
+
+function releaseWakeLock() {
+  if (performState.wakeLock) {
+    performState.wakeLock.release();
+    performState.wakeLock = null;
+  }
+}
+
+// Re-acquire wake lock on visibility change
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && document.getElementById('performMode').classList.contains('active')) {
+    requestWakeLock();
+  }
+});
+
+// ==================== INIT ====================
+loadState();
+if (state.setlist.length > 0 && !state.selectedSongId) {
+  state.selectedSongId = state.setlist[0].id;
+}
+renderSongList();
+renderEditor();
+</script>
+</body>
+</html>
