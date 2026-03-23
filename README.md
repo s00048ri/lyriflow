@@ -4,6 +4,12 @@ A minimal lyrics teleprompter web app for vocalists. Navigate through your setli
 
 **Live Demo:** https://s00048ri.github.io/lyriflow/
 
+## Screenshots
+
+| Home | Edit Mode | Performance Mode |
+|:---:|:---:|:---:|
+| ![Home](screenshot-home.png) | ![Edit Mode](screenshot-edit.png) | ![Performance Mode](screenshot-perform.png) |
+
 ## Features
 
 - **Slide-based display** — One lyrics section per screen, not scrolling
@@ -60,6 +66,12 @@ MIT
 バンドのボーカリスト向け歌詞テレプロンプターWebアプリ。iPadのブラウザ上でBluetoothペダルを使い、ハンズフリーでセットリストを通せます。
 
 **デモ:** https://s00048ri.github.io/lyriflow/
+
+## スクリーンショット
+
+| ホーム | 編集モード | 演奏モード |
+|:---:|:---:|:---:|
+| ![ホーム](screenshot-home.png) | ![編集モード](screenshot-edit.png) | ![演奏モード](screenshot-perform.png) |
 
 ## 特徴
 
