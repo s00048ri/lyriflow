@@ -559,6 +559,7 @@ let performState = {
   allSlides: [],     // { songIndex, songTitle, text, isLabel }
   currentIndex: 0,
   wakeLock: null,
+  transitioning: false,
 };
 
 // ==================== PERSISTENCE (sessionStorage only — resets on new tab) ====================
@@ -999,16 +1000,19 @@ function renderSlide() {
 }
 
 function showSongTransition(title, callback) {
+  performState.transitioning = true;
   const overlay = document.getElementById('songTransition');
   document.getElementById('transitionTitle').textContent = title;
   overlay.classList.add('visible');
   setTimeout(() => {
     overlay.classList.remove('visible');
+    performState.transitioning = false;
     callback();
   }, 800);
 }
 
 function navigateSlide(direction) {
+  if (performState.transitioning) return;
   const slides = performState.allSlides;
   const oldIndex = performState.currentIndex;
   const newIndex = oldIndex + direction;
