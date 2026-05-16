@@ -715,6 +715,20 @@ function renderSongList() {
       selectSong(song.id);
     });
 
+    // Right-click to delete
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (confirm(`「${song.title || '(untitled)'}」を削除しますか？`)) {
+        state.setlist.splice(index, 1);
+        if (state.selectedSongId === song.id) {
+          state.selectedSongId = state.setlist.length > 0 ? state.setlist[0].id : null;
+        }
+        saveState();
+        renderSongList();
+        renderEditor();
+      }
+    });
+
     // === Mouse Drag & drop (desktop) ===
     el.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/plain', index);
@@ -914,7 +928,17 @@ function startPerformance() {
   }
   performState.allSlides = buildAllSlides();
   if (performState.allSlides.length === 0) return;
-  performState.currentIndex = 0;
+
+  // Start from the selected song
+  let startIndex = 0;
+  if (state.selectedSongId) {
+    const songIdx = state.setlist.findIndex(s => s.id === state.selectedSongId);
+    if (songIdx > 0) {
+      startIndex = performState.allSlides.findIndex(s => s.songIndex === songIdx);
+      if (startIndex < 0) startIndex = 0;
+    }
+  }
+  performState.currentIndex = startIndex;
 
   document.getElementById('editMode').classList.add('hidden');
   document.getElementById('performMode').classList.add('active');
